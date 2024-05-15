@@ -1,2 +1,147 @@
-3rd file
-My 3rd file
+import tkinter as tk
+from tkinter import messagebox
+import random
+
+HANGMAN_PICS = ['''
+    +---+
+         |
+         |
+         |
+        ===''', '''
+    +---+
+    O   |
+        |
+        |
+       ===''', '''
+    +---+
+    O   |
+    |   |
+        |
+       ===''', '''
+    +---+
+    O   |
+   /|   |
+        |
+       ===''', '''
+    +---+
+    O   |
+   /|\  |
+        |
+       ===''', '''
+    +---+
+    O   |
+   /|\  |
+   /    |
+       ===''', '''
+    +---+
+    O   |
+   /|\  |
+   / \  |
+       ===''']
+
+words = {
+    'fruits': ['apple', 'banana', 'orange', 'grape', 'strawberry', 'watermelon', 'pineapple'],
+    'animals': ['ant', 'bear', 'cat', 'dog', 'elephant', 'giraffe', 'zebra'],
+    'flowers': ['rose', 'daisy', 'tulip', 'sunflower', 'lily', 'orchid', 'daffodil'],
+    'countries': ['USA', 'Canada', 'UK', 'France', 'Germany', 'Japan', 'Australia']
+}
+
+class HangmanGame:
+    def _init_(self, root):
+        self.root = root
+        self.root.title("Hangman")
+        
+        self.canvas = tk.Canvas(root, width=300, height=400)
+        self.canvas.pack()
+
+        self.show_description()
+
+    def show_description(self):
+        description = "Hangman Instructions:\n\n"
+        description += "1. Guess the word by selecting letters.\n"
+        description += "2. If you guess a letter correctly, it will appear in the word.\n"
+        description += "3. If you guess incorrectly, a part of the hangman will be drawn.\n"
+        description += "4. You have 6 chances to guess the word.\n\n"
+        description += "Click OK to start the game!"
+        
+        messagebox.showinfo("Hangman Instructions", description)
+        messagebox.showinfo("Good Luck!", "Good luck with the game!")
+
+        self.start_game()
+
+    def start_game(self):
+        self.word_type = random.choice(list(words.keys()))
+        self.word_to_guess = random.choice(words[self.word_type])
+        self.correct_letters = set()
+        self.missed_letters = set()
+        self.incorrect_guesses = 0
+
+        self.draw_gallows()
+        self.draw_word()
+        self.draw_letters()
+
+    def draw_gallows(self):
+        self.canvas.create_text(150, 20, text="Hangman", font=("Helvetica", 20))
+        self.canvas.create_text(150, 350, text="Missed Letters:", font=("Helvetica", 12))
+        self.canvas.create_text(150, 370, text=" ".join(self.missed_letters), font=("Helvetica", 12))
+
+        self.canvas.create_text(150, 100, text=HANGMAN_PICS[self.incorrect_guesses], font=("Helvetica", 12))
+
+    def draw_word(self):
+        word_display = ""
+        for letter in self.word_to_guess:
+            if letter in self.correct_letters:
+                word_display += letter + " "
+            else:
+                word_display += "_ "
+        self.canvas.create_text(150, 200, text=word_display, font=("Helvetica", 16))
+
+    def draw_letters(self):
+        for i, letter in enumerate("abcdefghijklmnopqrstuvwxyz"):
+            col = i % 9
+            row = i // 9
+            x = 30 + col * 30
+            y = 270 + row * 30
+            self.canvas.create_text(x, y, text=letter, font=("Helvetica", 12), tags=letter)
+            self.canvas.tag_bind(letter, "<Button-1>", lambda event, l=letter: self.check_letter(l))
+
+    def check_letter(self, letter):
+        if letter in self.correct_letters or letter in self.missed_letters:
+            return
+
+        if letter in self.word_to_guess:
+            self.correct_letters.add(letter)
+            self.canvas.delete("all")
+            self.draw_gallows()
+            self.draw_word()
+            self.draw_letters()
+
+            if self.word_to_guess == "".join([l if l in self.correct_letters else "_" for l in self.word_to_guess]):
+                messagebox.showinfo("Hangman", f"Congratulations! You guessed the {self.word_type}!")
+                self.reset_game()
+        else:
+            self.missed_letters.add(letter)
+            self.incorrect_guesses += 1
+            self.canvas.delete("all")
+            self.draw_gallows()
+            self.draw_word()
+            self.draw_letters()
+
+            if len(self.missed_letters) == 4:
+                hint_type = self.word_type.capitalize()  # Capitalize the word type for display
+                messagebox.showinfo("Hangman Hint", f"The word is related to {hint_type}.")
+
+            if self.incorrect_guesses == len(HANGMAN_PICS) - 1:
+                messagebox.showinfo("Hangman", f"Game Over! The {self.word_type} was '{self.word_to_guess}'")
+                self.reset_game()
+
+    def reset_game(self):
+        self.canvas.delete("all")
+        self.start_game()
+
+if _name_ == "_main_":
+    root = tk.Tk()
+    game = HangmanGame(root)
+
+    restart_button = tk.Button(root, text="Restart Game", command=game.reset_game)
+    restart_button.pack()
